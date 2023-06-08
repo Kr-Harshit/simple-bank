@@ -6,16 +6,17 @@ import (
 
 	"github.com/KHarshit1203/simple-bank/api"
 	db "github.com/KHarshit1203/simple-bank/db/gen"
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/jackc/pgx/v4"
 )
 
-const (
-	DATABASE_URL  = "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable"
-	SEVER_ADDRESS = "0.0.0.0:8080"
-)
-
 func main() {
-	conn, err := pgx.Connect(context.Background(), DATABASE_URL)
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Fatal("cannot load configurations: ", err)
+	}
+
+	conn, err := pgx.Connect(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connnect to database: ", err)
 	}
@@ -24,7 +25,7 @@ func main() {
 	store := db.NewStore(conn)
 	server := api.NewServer(store)
 
-	err = server.Start(SEVER_ADDRESS)
+	err = server.Start(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start the server: ", err)
 	}

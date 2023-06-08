@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/jackc/pgx/v4"
 )
 
@@ -18,8 +19,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	var err error
-	testDb, err := pgx.Connect(context.Background(), DATABASE_URL)
+	config, err := util.LoadConfig("../..")
+	if err != nil {
+		log.Fatal("cannot load config: ", err)
+	}
+
+	testDb, err := pgx.Connect(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connnect to database", err)
 	}

@@ -8,4 +8,5 @@ This repo is a follow along tutorial implementaion to learn Golang backend devel
 - [dbddiagram.io](https://dbdiagram.io/home) --> to create the database schema.
 - [golang-migrate](https://github.com/golang-migrate/migrate) --> to migrate database in golang.
 - [sqlc](https://sqlc.dev/) --> to generate golang CRUD code from SQL
-- [Gin](https://github.com/gin-gonic/gin) --> RESTful HTTPS web framework
+- [Gin](https://github.com/gin-gonic/gin) --> to start a web server and register routes
+- [viper](https://github.com/spf13/viper) --> to read from config file and env variables
