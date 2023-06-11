@@ -7,22 +7,28 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-// Store provides all function to execute db quries indiviually and transactions
-type Store struct {
+// Store provides all function to execute db queries indiviually and transactions
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+// Store provides all function to execute SQL queries transactions
+type SQLStore struct {
 	*Queries
 	db *pgx.Conn
 }
 
 // NewStore creates a new store
-func NewStore(db *pgx.Conn) *Store {
-	return &Store{
+func NewStore(db *pgx.Conn) Store {
+	return SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
 // execTx executes a function within a database transaction
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	// var txOptions pgx.TxOptions
 	tx, err := store.db.Begin(ctx)
 	if err != nil {

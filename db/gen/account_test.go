@@ -10,13 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var CURRENCIES = [3]string{"USD", "IND", "GBP"}
-
 func generateAccount(ctx context.Context, t *testing.T) Account {
 	arg := CreateAccountParams{
 		OwnerID:  util.RandomUUID(),
 		Balance:  util.RandomFloat(1, 1000),
-		Currency: CURRENCIES[util.RandomInt(0, 2)],
+		Currency: util.RandomCurrency(),
 	}
 	account, err := testQueries.CreateAccount(ctx, arg)
 

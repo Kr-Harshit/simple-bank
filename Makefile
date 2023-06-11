@@ -9,7 +9,8 @@
 	migateUp 
 	migrateDown
 	sqlc
-	test 
+	test
+	mock 
 
 createPostgres:
 	docker run --name postgresDB -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:alpine
@@ -49,3 +50,6 @@ server:
 
 test:
 	go test -v --cover ./...
+
+mock: 
+	mockgen -package mock -destination ./db/mock/Store.go github.com/KHarshit1203/simple-bank/db/gen Store

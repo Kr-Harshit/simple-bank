@@ -10,3 +10,4 @@ This repo is a follow along tutorial implementaion to learn Golang backend devel
 - [sqlc](https://sqlc.dev/) --> to generate golang CRUD code from SQL
 - [Gin](https://github.com/gin-gonic/gin) --> to start a web server and register routes
 - [viper](https://github.com/spf13/viper) --> to read from config file and env variables
+- [GoMock](https://github.com/golang/mock) --> to mock Database for testing

@@ -11,6 +11,8 @@ import (
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
+var currencies = [3]string{"USD", "INR", "EUR"}
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -46,4 +48,8 @@ func RandomUUID() string {
 		return ""
 	}
 	return uuid.String()
+}
+
+func RandomCurrency() string {
+	return currencies[RandomInt(0, int64(len(currencies)-1))]
 }
