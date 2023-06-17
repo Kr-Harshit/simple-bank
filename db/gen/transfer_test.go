@@ -15,7 +15,7 @@ func generateTransfer(ctx context.Context, t *testing.T, fromAccount, toAccount 
 		Amount:        amount,
 	}
 
-	transfer, err := testQueries.CreateTransfer(ctx, arg)
+	transfer, err := testStore.CreateTransfer(ctx, arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfer)
 
@@ -47,7 +47,7 @@ func TestGetTransfer(t *testing.T) {
 
 	transfer1 := generateTransfer(ctx, t, account1, account2, float32(amount))
 
-	transfer2, err := testQueries.GetTransfer(ctx, transfer1.ID)
+	transfer2, err := testStore.GetTransfer(ctx, transfer1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfer2)
 
@@ -75,7 +75,7 @@ func TestListTransfers(t *testing.T) {
 		Offset:        5,
 	}
 
-	transfers, err := testQueries.ListTransfers(ctx, arg)
+	transfers, err := testStore.ListTransfers(ctx, arg)
 	require.NoError(t, err)
 	require.Len(t, transfers, 5)
 

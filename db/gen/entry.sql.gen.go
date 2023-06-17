@@ -18,10 +18,10 @@ RETURNING id, account_id, amount, transfer_id, created_at, credit
 `
 
 type CreateEntryParams struct {
-	AccountID  int64   `db:"account_id" json:"account_id"`
-	Amount     float32 `db:"amount" json:"amount"`
-	TransferID int64   `db:"transfer_id" json:"transfer_id"`
-	Credit     bool    `db:"credit" json:"credit"`
+	AccountID  int64   `json:"account_id"`
+	Amount     float32 `json:"amount"`
+	TransferID int64   `json:"transfer_id"`
+	Credit     bool    `json:"credit"`
 }
 
 func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry, error) {
@@ -72,9 +72,9 @@ OFFSET $3
 `
 
 type ListEntriesParams struct {
-	AccountID int64 `db:"account_id" json:"account_id"`
-	Limit     int32 `db:"limit" json:"limit"`
-	Offset    int32 `db:"offset" json:"offset"`
+	AccountID int64 `json:"account_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
 }
 
 func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Entry, error) {

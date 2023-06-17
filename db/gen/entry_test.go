@@ -18,7 +18,7 @@ func generateEntries(ctx context.Context, t *testing.T, account Account, transfe
 		Credit:     credit,
 	}
 
-	entry, err := testQueries.CreateEntry(ctx, arg1)
+	entry, err := testStore.CreateEntry(ctx, arg1)
 	require.NoError(t, err)
 	require.NotEmpty(t, entry)
 
@@ -53,7 +53,7 @@ func TestGetEntry(t *testing.T) {
 	transfer1 := generateTransfer(ctx, t, account1, account2, amount)
 	entry1 := generateEntries(ctx, t, account1, transfer1, false)
 
-	entry2, err := testQueries.GetEntry(ctx, entry1.ID)
+	entry2, err := testStore.GetEntry(ctx, entry1.ID)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, entry2)
@@ -83,7 +83,7 @@ func TestListEntries(t *testing.T) {
 		Offset:    0,
 	}
 
-	entries, err := testQueries.ListEntries(ctx, arg)
+	entries, err := testStore.ListEntries(ctx, arg)
 	require.NoError(t, err)
 	require.Len(t, entries, 20)
 

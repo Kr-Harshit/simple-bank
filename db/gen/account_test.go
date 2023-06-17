@@ -13,10 +13,10 @@ import (
 func generateAccount(ctx context.Context, t *testing.T) Account {
 	arg := CreateAccountParams{
 		OwnerID:  util.RandomUUID(),
-		Balance:  util.RandomFloat(1, 1000),
+		Balance:  util.RandomFloat(100, 1000),
 		Currency: util.RandomCurrency(),
 	}
-	account, err := testQueries.CreateAccount(ctx, arg)
+	account, err := testStore.CreateAccount(ctx, arg)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
@@ -32,7 +32,7 @@ func generateAccount(ctx context.Context, t *testing.T) Account {
 }
 
 func deleteGeneratedAccount(ctx context.Context, id int64, t *testing.T) {
-	err := testQueries.DeleteAccount(ctx, id)
+	err := testStore.DeleteAccount(ctx, id)
 	require.NoError(t, err)
 }
 
@@ -48,7 +48,7 @@ func TestGetAccount(t *testing.T) {
 	ctx := context.Background()
 	account1 := generateAccount(ctx, t)
 
-	account2, err := testQueries.GetAccount(ctx, account1.ID)
+	account2, err := testStore.GetAccount(ctx, account1.ID)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, account2)
@@ -77,7 +77,7 @@ func TestListAccounts(t *testing.T) {
 		Offset:  0,
 	}
 
-	accounts, err := testQueries.ListAccounts(ctx, arg)
+	accounts, err := testStore.ListAccounts(ctx, arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, accounts)
 
@@ -95,10 +95,10 @@ func TestDeleteAccount(t *testing.T) {
 	ctx := context.Background()
 	account1 := generateAccount(ctx, t)
 
-	err := testQueries.DeleteAccount(ctx, account1.ID)
+	err := testStore.DeleteAccount(ctx, account1.ID)
 	require.NoError(t, err)
 
-	account2, err := testQueries.GetAccount(ctx, account1.ID)
+	account2, err := testStore.GetAccount(ctx, account1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, pgx.ErrNoRows.Error())
 	require.Empty(t, account2)
@@ -113,7 +113,7 @@ func TestPurgeUserAccounts(t *testing.T) {
 		generatedAccounts = append(generatedAccounts, lastAccount)
 	}
 
-	err := testQueries.PurgeUserAccounts(ctx, lastAccount.OwnerID)
+	err := testStore.PurgeUserAccounts(ctx, lastAccount.OwnerID)
 	require.NoError(t, err)
 
 	listAccountsAgr := ListAccountsParams{
@@ -122,7 +122,7 @@ func TestPurgeUserAccounts(t *testing.T) {
 		Offset:  0,
 	}
 
-	accounts, _ := testQueries.ListAccounts(ctx, listAccountsAgr)
+	accounts, _ := testStore.ListAccounts(ctx, listAccountsAgr)
 	require.Empty(t, accounts)
 
 	for _, account := range generatedAccounts {
@@ -141,7 +141,7 @@ func TestUpdateBalance(t *testing.T) {
 		Amount: util.RandomFloat(100, 10000),
 	}
 
-	account2, err := testQueries.UpdateBalance(ctx, arg)
+	account2, err := testStore.UpdateBalance(ctx, arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, account2)
 

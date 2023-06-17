@@ -3,20 +3,14 @@ package db
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/KHarshit1203/simple-bank/util"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const (
-	DATABASE_URL = "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable"
-)
-
-var (
-	testQueries *Queries
-	testDb      *pgx.Conn
-)
+var testStore Store
 
 func TestMain(m *testing.M) {
 	config, err := util.LoadConfig("../..")
@@ -24,12 +18,12 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot load config: ", err)
 	}
 
-	testDb, err := pgx.Connect(context.Background(), config.DBSource)
+	testConnPool, err := pgxpool.New(context.Background(), config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connnect to database", err)
 	}
-	defer testDb.Close(context.Background())
+	defer testConnPool.Close()
 
-	testQueries = New(testDb)
-	m.Run()
+	testStore = NewSQLStore(testConnPool)
+	os.Exit(m.Run())
 }

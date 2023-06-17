@@ -18,9 +18,9 @@ RETURNING id, owner_id, balance, currency, created_at, last_modified_at
 `
 
 type CreateAccountParams struct {
-	OwnerID  string  `db:"owner_id" json:"owner_id"`
-	Balance  float32 `db:"balance" json:"balance"`
-	Currency string  `db:"currency" json:"currency"`
+	OwnerID  string  `json:"owner_id"`
+	Balance  float32 `json:"balance"`
+	Currency string  `json:"currency"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -97,9 +97,9 @@ OFFSET $3
 `
 
 type ListAccountsParams struct {
-	OwnerID string `db:"owner_id" json:"owner_id"`
-	Limit   int32  `db:"limit" json:"limit"`
-	Offset  int32  `db:"offset" json:"offset"`
+	OwnerID string `json:"owner_id"`
+	Limit   int32  `json:"limit"`
+	Offset  int32  `json:"offset"`
 }
 
 func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error) {
@@ -147,8 +147,8 @@ RETURNING id, owner_id, balance, currency, created_at, last_modified_at
 `
 
 type UpdateBalanceParams struct {
-	Amount float32 `db:"amount" json:"amount"`
-	ID     int64   `db:"id" json:"id"`
+	Amount float32 `json:"amount"`
+	ID     int64   `json:"id"`
 }
 
 func (q *Queries) UpdateBalance(ctx context.Context, arg UpdateBalanceParams) (Account, error) {
