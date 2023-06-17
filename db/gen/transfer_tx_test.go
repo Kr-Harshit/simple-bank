@@ -20,7 +20,7 @@ func TestTransferTx(t *testing.T) {
 
 	for i := 0; i < n; i++ {
 		// t.Logf("transfering %v from %v account to %v account", amount, fromAccount.ID, toAccount.ID)
-		t.Logf("Amount before transfering: fromAccount: %v  toAccount: %v", fromAccount.Balance, toAccount.Balance)
+		// t.Logf("Amount before transfering: fromAccount: %v  toAccount: %v", fromAccount.Balance, toAccount.Balance)
 
 		go func() {
 			result, err := testStore.TransferTx(context.Background(), TransferTxParams{
@@ -56,7 +56,7 @@ func TestTransferTxDeadLock(t *testing.T) {
 	results := make(chan TransferTxResult)
 
 	for i := 0; i < n; i++ {
-		t.Logf("Amount before transfering: account1: [id:%d, amount: %v]  account2: [id: %d, ammount: %v]", account1.ID, account1.Balance, account2.ID, account2.Balance)
+		// t.Logf("Amount before transfering: account1: [id:%d, amount: %v]  account2: [id: %d, ammount: %v]", account1.ID, account1.Balance, account2.ID, account2.Balance)
 
 		fromAccountID := account1.ID
 		toAccountID := account2.ID
@@ -65,7 +65,7 @@ func TestTransferTxDeadLock(t *testing.T) {
 			toAccountID = account1.ID
 		}
 
-		t.Logf("transfering %v from %v account to %v account", amount, fromAccountID, toAccountID)
+		// t.Logf("transfering %v from %v account to %v account", amount, fromAccountID, toAccountID)
 
 		go func() {
 			result, err := testStore.TransferTx(context.Background(), TransferTxParams{
@@ -91,7 +91,7 @@ func TestTransferTxDeadLock(t *testing.T) {
 	updatedAccount2, err := testStore.GetAccount(context.Background(), account2.ID)
 	require.NoError(t, err)
 
-	t.Logf(">> after tx baklance, account1: %v, account2: %v", updatedAccount1.Balance, updatedAccount2.Balance)
+	// t.Logf(">> after tx baklance, account1: %v, account2: %v", updatedAccount1.Balance, updatedAccount2.Balance)
 	require.Equal(t, account1.Balance, updatedAccount1.Balance)
 	require.Equal(t, account2.Balance, updatedAccount2.Balance)
 }
