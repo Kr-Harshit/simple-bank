@@ -9,10 +9,8 @@ import (
 )
 
 func TestTransferTx(t *testing.T) {
-	ctx := context.Background()
-
-	fromAccount := generateAccount(ctx, t)
-	toAccount := generateAccount(ctx, t)
+	fromAccount := generateAccount(t)
+	toAccount := generateAccount(t)
 	amount := util.RandomFloat(1, 10)
 	n := 10
 	errs := make(chan error)
@@ -46,10 +44,8 @@ func TestTransferTx(t *testing.T) {
 }
 
 func TestTransferTxDeadLock(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 	amount := util.RandomFloat(1, 10)
 	n := 10
 	errs := make(chan error)

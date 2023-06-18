@@ -20,7 +20,7 @@ func NewServer(store db.Store) *Server {
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := v.RegisterValidation("currency", validCurrency); err != nil {
-			log.Fatalf("umable to register currency validator, %v", err)
+			log.Fatalf("unable to register currency validator, %v", err)
 		}
 	}
 
@@ -44,6 +44,6 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
-func errroResponse(err error) gin.H {
+func errorResponse(err error) gin.H {
 	return gin.H{"error": err.Error()}
 }

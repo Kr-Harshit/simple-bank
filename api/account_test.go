@@ -31,12 +31,12 @@ func TestCreateAccountApi(t *testing.T) {
 		{
 			name: "OK",
 			requestBody: gin.H{
-				"owner-id": account.OwnerID,
+				"owner":    account.Owner,
 				"currency": account.Currency,
 			},
 			buildStub: func(store *mock.MockStore) {
 				arg := db.CreateAccountParams{
-					OwnerID:  account.OwnerID,
+					Owner:    account.Owner,
 					Currency: account.Currency,
 					Balance:  0,
 				}
@@ -52,7 +52,7 @@ func TestCreateAccountApi(t *testing.T) {
 			},
 		},
 		{
-			name: "MissingOwnerID",
+			name: "MissingOwner",
 			requestBody: gin.H{
 				"currency": account.Currency,
 			},
@@ -68,7 +68,7 @@ func TestCreateAccountApi(t *testing.T) {
 		{
 			name: "InvalidCurrency",
 			requestBody: gin.H{
-				"owner-id": account.OwnerID,
+				"owner":    account.Owner,
 				"currency": "invalid",
 			},
 			buildStub: func(store *mock.MockStore) {
@@ -83,7 +83,7 @@ func TestCreateAccountApi(t *testing.T) {
 		{
 			name: "InternalServerError",
 			requestBody: gin.H{
-				"owner-id": account.OwnerID,
+				"owner":    account.Owner,
 				"currency": account.Currency,
 			},
 			buildStub: func(store *mock.MockStore) {
@@ -315,7 +315,7 @@ func TestDeleteAccountApi(t *testing.T) {
 func randomAccount() db.Account {
 	return db.Account{
 		ID:       util.RandomInt(1, 100),
-		OwnerID:  util.RandomUUID(),
+		Owner:    util.RandomUUID(),
 		Balance:  util.RandomFloat(0, 1000),
 		Currency: util.RandomCurrency(),
 	}

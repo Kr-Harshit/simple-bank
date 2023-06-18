@@ -7,7 +7,9 @@
 	dropDb 
 	createMigration 
 	migateUp 
+	migrateUp1
 	migrateDown
+	migrateDown1
 	sqlc
 	test
 	mock 
@@ -39,8 +41,15 @@ createMigration:
 migrateUp:
 	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up
 
+migrateUp1:
+	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up 1
+
 migrateDown:
 	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down
+
+migrateDown1:
+	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down 1
+	
 
 sqlc:
 	sqlc generate

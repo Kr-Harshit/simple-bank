@@ -8,52 +8,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func generateEntries(ctx context.Context, t *testing.T, account Account, transfer Transfer, credit bool) Entry {
-	amount := transfer.Amount
-
-	arg1 := CreateEntryParams{
-		AccountID:  account.ID,
-		Amount:     amount,
-		TransferID: transfer.ID,
-		Credit:     credit,
-	}
-
-	entry, err := testStore.CreateEntry(ctx, arg1)
-	require.NoError(t, err)
-	require.NotEmpty(t, entry)
-
-	require.NotEmpty(t, entry.ID)
-	require.Equal(t, account.ID, entry.AccountID)
-	require.Equal(t, amount, entry.Amount)
-	require.Equal(t, transfer.ID, entry.TransferID)
-	require.NotEmpty(t, entry.CreatedAt)
-	require.Equal(t, credit, entry.Credit)
-
-	return entry
-}
-
 func TestCreateEntry(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 	amount := util.RandomFloat(0, 100)
-	transfer := generateTransfer(ctx, t, account1, account2, amount)
+	transfer := generateTransfer(t, account1, account2, amount)
 
-	generateEntries(ctx, t, account1, transfer, false)
+	generateEntries(t, account1, transfer, false)
 }
 
 func TestGetEntry(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 	amount := util.RandomFloat(0, 100)
 
-	transfer1 := generateTransfer(ctx, t, account1, account2, amount)
-	entry1 := generateEntries(ctx, t, account1, transfer1, false)
+	transfer1 := generateTransfer(t, account1, account2, amount)
+	entry1 := generateEntries(t, account1, transfer1, false)
 
-	entry2, err := testStore.GetEntry(ctx, entry1.ID)
+	entry2, err := testStore.GetEntry(context.Background(), entry1.ID)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, entry2)
@@ -65,16 +37,14 @@ func TestGetEntry(t *testing.T) {
 }
 
 func TestListEntries(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 
 	for i := 0; i < 10; i++ {
-		transfer1 := generateTransfer(ctx, t, account1, account2, util.RandomFloat(0, 100))
-		generateEntries(ctx, t, account1, transfer1, false)
-		transfer2 := generateTransfer(ctx, t, account2, account1, util.RandomFloat(0, 100))
-		generateEntries(ctx, t, account1, transfer2, true)
+		transfer1 := generateTransfer(t, account1, account2, util.RandomFloat(0, 100))
+		generateEntries(t, account1, transfer1, false)
+		transfer2 := generateTransfer(t, account2, account1, util.RandomFloat(0, 100))
+		generateEntries(t, account1, transfer2, true)
 	}
 
 	arg := ListEntriesParams{
@@ -83,7 +53,7 @@ func TestListEntries(t *testing.T) {
 		Offset:    0,
 	}
 
-	entries, err := testStore.ListEntries(ctx, arg)
+	entries, err := testStore.ListEntries(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, entries, 20)
 
@@ -94,4 +64,28 @@ func TestListEntries(t *testing.T) {
 		require.NotEmpty(t, entry.TransferID)
 	}
 
+}
+
+func generateEntries(t *testing.T, account Account, transfer Transfer, credit bool) Entry {
+	amount := transfer.Amount
+
+	arg1 := CreateEntryParams{
+		AccountID:  account.ID,
+		Amount:     amount,
+		TransferID: transfer.ID,
+		Credit:     credit,
+	}
+
+	entry, err := testStore.CreateEntry(context.Background(), arg1)
+	require.NoError(t, err)
+	require.NotEmpty(t, entry)
+
+	require.NotEmpty(t, entry.ID)
+	require.Equal(t, account.ID, entry.AccountID)
+	require.Equal(t, amount, entry.Amount)
+	require.Equal(t, transfer.ID, entry.TransferID)
+	require.NotEmpty(t, entry.CreatedAt)
+	require.Equal(t, credit, entry.Credit)
+
+	return entry
 }

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"strings"
@@ -52,4 +53,8 @@ func RandomUUID() string {
 
 func RandomCurrency() string {
 	return currencies[RandomInt(0, int64(len(currencies)-1))]
+}
+
+func RandomEmail() string {
+	return fmt.Sprintf("%v@test.com", RandomString(10))
 }

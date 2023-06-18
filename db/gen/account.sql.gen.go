@@ -11,24 +11,24 @@ import (
 
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts
-(owner_id, balance, currency)
+(owner, balance, currency)
 VALUES
 ($1, $2, $3)
-RETURNING id, owner_id, balance, currency, created_at, last_modified_at
+RETURNING id, owner, balance, currency, created_at, last_modified_at
 `
 
 type CreateAccountParams struct {
-	OwnerID  string  `json:"owner_id"`
+	Owner    string  `json:"owner"`
 	Balance  float32 `json:"balance"`
 	Currency string  `json:"currency"`
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
-	row := q.db.QueryRow(ctx, createAccount, arg.OwnerID, arg.Balance, arg.Currency)
+	row := q.db.QueryRow(ctx, createAccount, arg.Owner, arg.Balance, arg.Currency)
 	var i Account
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.Owner,
 		&i.Balance,
 		&i.Currency,
 		&i.CreatedAt,
@@ -48,7 +48,7 @@ func (q *Queries) DeleteAccount(ctx context.Context, id int64) error {
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, owner_id, balance, currency, created_at, last_modified_at FROM accounts
+SELECT id, owner, balance, currency, created_at, last_modified_at FROM accounts
 WHERE id = $1
 LIMIT 1
 `
@@ -58,28 +58,7 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 	var i Account
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
-		&i.Balance,
-		&i.Currency,
-		&i.CreatedAt,
-		&i.LastModifiedAt,
-	)
-	return i, err
-}
-
-const getAccountForUpdate = `-- name: GetAccountForUpdate :one
-SELECT id, owner_id, balance, currency, created_at, last_modified_at FROM accounts
-WHERE id = $1
-LIMIT 1
-FOR NO KEY UPDATE
-`
-
-func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, error) {
-	row := q.db.QueryRow(ctx, getAccountForUpdate, id)
-	var i Account
-	err := row.Scan(
-		&i.ID,
-		&i.OwnerID,
+		&i.Owner,
 		&i.Balance,
 		&i.Currency,
 		&i.CreatedAt,
@@ -89,21 +68,21 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, e
 }
 
 const listAccounts = `-- name: ListAccounts :many
-SELECT id, owner_id, balance, currency, created_at, last_modified_at FROM accounts
-WHERE owner_id = $1
+SELECT id, owner, balance, currency, created_at, last_modified_at FROM accounts
+WHERE owner = $1
 ORDER BY id
 LIMIT $2
 OFFSET $3
 `
 
 type ListAccountsParams struct {
-	OwnerID string `json:"owner_id"`
-	Limit   int32  `json:"limit"`
-	Offset  int32  `json:"offset"`
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]Account, error) {
-	rows, err := q.db.Query(ctx, listAccounts, arg.OwnerID, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, listAccounts, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +92,7 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 		var i Account
 		if err := rows.Scan(
 			&i.ID,
-			&i.OwnerID,
+			&i.Owner,
 			&i.Balance,
 			&i.Currency,
 			&i.CreatedAt,
@@ -131,11 +110,11 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 
 const purgeUserAccounts = `-- name: PurgeUserAccounts :exec
 DELETE FROM accounts
-WHERE owner_id = $1
+WHERE owner= $1
 `
 
-func (q *Queries) PurgeUserAccounts(ctx context.Context, ownerID string) error {
-	_, err := q.db.Exec(ctx, purgeUserAccounts, ownerID)
+func (q *Queries) PurgeUserAccounts(ctx context.Context, owner string) error {
+	_, err := q.db.Exec(ctx, purgeUserAccounts, owner)
 	return err
 }
 
@@ -143,7 +122,7 @@ const updateBalance = `-- name: UpdateBalance :one
 UPDATE accounts
 SET balance = balance + $1
 WHERE id = $2
-RETURNING id, owner_id, balance, currency, created_at, last_modified_at
+RETURNING id, owner, balance, currency, created_at, last_modified_at
 `
 
 type UpdateBalanceParams struct {
@@ -156,7 +135,7 @@ func (q *Queries) UpdateBalance(ctx context.Context, arg UpdateBalanceParams) (A
 	var i Account
 	err := row.Scan(
 		&i.ID,
-		&i.OwnerID,
+		&i.Owner,
 		&i.Balance,
 		&i.Currency,
 		&i.CreatedAt,

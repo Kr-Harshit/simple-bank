@@ -8,46 +8,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func generateTransfer(ctx context.Context, t *testing.T, fromAccount, toAccount Account, amount float32) Transfer {
-	arg := CreateTransferParams{
-		FromAccountID: fromAccount.ID,
-		ToAccountID:   toAccount.ID,
-		Amount:        amount,
-	}
-
-	transfer, err := testStore.CreateTransfer(ctx, arg)
-	require.NoError(t, err)
-	require.NotEmpty(t, transfer)
-
-	require.NotEmpty(t, transfer.ID)
-	require.Equal(t, fromAccount.ID, transfer.FromAccountID)
-	require.Equal(t, toAccount.ID, transfer.ToAccountID)
-	require.Equal(t, amount, transfer.Amount)
-	require.NotEmpty(t, transfer.CreatedAt)
-
-	return transfer
-}
-
 func TestCreateTransfer(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 	amount := util.RandomFloat(0, 1000)
 
-	generateTransfer(ctx, t, account1, account2, amount)
+	generateTransfer(t, account1, account2, amount)
 }
 
 func TestGetTransfer(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 	amount := util.RandomFloat(0, 1000)
 
-	transfer1 := generateTransfer(ctx, t, account1, account2, float32(amount))
+	transfer1 := generateTransfer(t, account1, account2, float32(amount))
 
-	transfer2, err := testStore.GetTransfer(ctx, transfer1.ID)
+	transfer2, err := testStore.GetTransfer(context.Background(), transfer1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, transfer2)
 
@@ -58,14 +34,12 @@ func TestGetTransfer(t *testing.T) {
 }
 
 func TestListTransfers(t *testing.T) {
-	ctx := context.Background()
-
-	account1 := generateAccount(ctx, t)
-	account2 := generateAccount(ctx, t)
+	account1 := generateAccount(t)
+	account2 := generateAccount(t)
 
 	for i := 0; i < 5; i++ {
-		generateTransfer(ctx, t, account1, account2, util.RandomFloat(0, 100))
-		generateTransfer(ctx, t, account2, account1, util.RandomFloat(0, 100))
+		generateTransfer(t, account1, account2, util.RandomFloat(0, 100))
+		generateTransfer(t, account2, account1, util.RandomFloat(0, 100))
 	}
 
 	arg := ListTransfersParams{
@@ -75,7 +49,7 @@ func TestListTransfers(t *testing.T) {
 		Offset:        5,
 	}
 
-	transfers, err := testStore.ListTransfers(ctx, arg)
+	transfers, err := testStore.ListTransfers(context.Background(), arg)
 	require.NoError(t, err)
 	require.Len(t, transfers, 5)
 
@@ -83,4 +57,24 @@ func TestListTransfers(t *testing.T) {
 		require.NotEmpty(t, transfer)
 		require.True(t, transfer.FromAccountID == account1.ID || transfer.ToAccountID == account1.ID)
 	}
+}
+
+func generateTransfer(t *testing.T, fromAccount, toAccount Account, amount float32) Transfer {
+	arg := CreateTransferParams{
+		FromAccountID: fromAccount.ID,
+		ToAccountID:   toAccount.ID,
+		Amount:        amount,
+	}
+
+	transfer, err := testStore.CreateTransfer(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, transfer)
+
+	require.NotEmpty(t, transfer.ID)
+	require.Equal(t, fromAccount.ID, transfer.FromAccountID)
+	require.Equal(t, toAccount.ID, transfer.ToAccountID)
+	require.Equal(t, amount, transfer.Amount)
+	require.NotEmpty(t, transfer.CreatedAt)
+
+	return transfer
 }
