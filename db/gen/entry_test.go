@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	util "github.com/KHarshit1203/simple-bank/util/datagenerator"
+	util "github.com/KHarshit1203/simple-bank/util"
 	"github.com/stretchr/testify/require"
 )
 

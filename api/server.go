@@ -37,6 +37,8 @@ func (server *Server) registerRoutes(router *gin.Engine) {
 	router.DELETE("/api/accounts/:id", server.deleteAccount)
 	router.DELETE("/api/accounts/purge/:owner-id", server.purgeUserAccounts)
 	router.POST("/api/transfer", server.createTransfer)
+
+	router.POST("/api/users", server.createUser)
 }
 
 // Start runs the HTTP server on a specific address

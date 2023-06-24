@@ -12,7 +12,7 @@ import (
 
 	db "github.com/KHarshit1203/simple-bank/db/gen"
 	"github.com/KHarshit1203/simple-bank/db/mock"
-	util "github.com/KHarshit1203/simple-bank/util/datagenerator"
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/jackc/pgx/v4"
@@ -48,7 +48,7 @@ func TestCreateAccountApi(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatch(t, recorder.Body, account)
+				requireBodyMatchAccountAccountAccount(t, recorder.Body, account)
 			},
 		},
 		{
@@ -149,7 +149,7 @@ func TestGetAccountApi(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
-				requireBodyMatch(t, recorder.Body, account)
+				requireBodyMatchAccountAccountAccount(t, recorder.Body, account)
 			},
 		},
 		{
@@ -321,7 +321,7 @@ func randomAccount() db.Account {
 	}
 }
 
-func requireBodyMatch(t *testing.T, body *bytes.Buffer, account db.Account) {
+func requireBodyMatchAccountAccountAccount(t *testing.T, body *bytes.Buffer, account db.Account) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	util "github.com/KHarshit1203/simple-bank/util/datagenerator"
+	util "github.com/KHarshit1203/simple-bank/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,9 +29,12 @@ func TestGetUser(t *testing.T) {
 
 // generateUser generates random user in DB.
 func generateUser(t *testing.T) User {
+	HashedPassword, err := util.HashPassword(util.RandomString(6))
+	require.NoError(t, err)
+
 	arg := CreateUserParams{
 		Username:       util.RandomString(10),
-		HashedPassword: "secret",
+		HashedPassword: HashedPassword,
 		FullName:       util.RandomString(20),
 		Email:          util.RandomEmail(),
 	}

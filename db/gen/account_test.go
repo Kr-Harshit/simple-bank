@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	util "github.com/KHarshit1203/simple-bank/util/datagenerator"
-	"github.com/jackc/pgx/v4"
+	util "github.com/KHarshit1203/simple-bank/util"
+	"github.com/jackc/pgx"
 	"github.com/stretchr/testify/require"
 )
 
