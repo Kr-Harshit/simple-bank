@@ -11,3 +11,5 @@ This repo is a follow along tutorial implementaion to learn Golang backend devel
 - [Gin](https://github.com/gin-gonic/gin) --> to start a web server and register routes
 - [viper](https://github.com/spf13/viper) --> to read from config file and env variables
 - [GoMock](https://github.com/golang/mock) --> to mock Database for testing
+- [JWT](https://github.com/golang-jwt/jwt) -> to generate JWT token
+- [Paesto](https://github.com/o1egl/paseto) -> to generate Paesto token
