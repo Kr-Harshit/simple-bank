@@ -36,19 +36,19 @@ dropDb:
 	docker exec -it postgresDB dropdb simple_bank
 
 createMigration:	
-	migrate create -ext sql -dir db/migration -seq -digits 3 {## give schema name ##}
+	migrate create -ext sql -dir service/db/migration -seq -digits 3 {## give schema name ##}
 
 migrateUp:
-	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up
+	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up
 
 migrateUp1:
-	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up 1
+	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up 1
 
 migrateDown:
-	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down
+	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down
 
 migrateDown1:
-	migrate -path db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down 1
+	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down 1
 	
 
 sqlc:

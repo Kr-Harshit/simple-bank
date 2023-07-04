@@ -10,7 +10,7 @@ import (
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" validate:"required"`
+	Owner    string `json:"owner" validate:"required,alphanum"`
 	Currency string `json:"currency" validate:"required,currency"`
 }
 
@@ -48,7 +48,7 @@ type getAccountRequest struct {
 
 func (as *ApiServer) getAccount(ctx *fiber.Ctx) error {
 	var req getAccountRequest
-	if err := ctx.BodyParser(&req); err != nil {
+	if err := ctx.ParamsParser(&req); err != nil {
 		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
@@ -67,15 +67,15 @@ func (as *ApiServer) getAccount(ctx *fiber.Ctx) error {
 }
 
 type listAccountRequest struct {
-	Owner    string `form:"owner" validate:"required"`
-	PageID   int32  `form:"page-id" validate:"required,min=1"`
-	PageSize int32  `form:"page-size" validate:"required,min=5,max=20"`
+	Owner    string `query:"owner" validate:"required,alphanum"`
+	PageID   int32  `query:"page_id" validate:"required,min=1"`
+	PageSize int32  `query:"page_size" validate:"required,min=5,max=20"`
 }
 
 func (as *ApiServer) listAccount(ctx *fiber.Ctx) error {
 	var req listAccountRequest
 
-	if err := ctx.BodyParser(&req); err != nil {
+	if err := ctx.QueryParser(&req); err != nil {
 		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
@@ -127,7 +127,7 @@ func (as *ApiServer) deleteAccount(ctx *fiber.Ctx) error {
 }
 
 type purgeUserAccountsRequest struct {
-	OwnerID string `uri:"owner-id" validate:"required"`
+	Owner string `uri:"owner" validate:"required,alphanum"`
 }
 
 func (as *ApiServer) purgeUserAccounts(ctx *fiber.Ctx) error {
@@ -141,7 +141,7 @@ func (as *ApiServer) purgeUserAccounts(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
 	}
 
-	err := as.store.PurgeUserAccounts(ctx.Context(), req.OwnerID)
+	err := as.store.PurgeUserAccounts(ctx.Context(), req.Owner)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
 			return fiber.NewError(http.StatusNotFound, err.Error())

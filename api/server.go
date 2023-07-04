@@ -70,8 +70,8 @@ func (as *ApiServer) setupRoutes() {
 	as.router.Post("/api/accounts", as.createAccount)
 	as.router.Get("/api/accounts/:id", as.getAccount)
 	as.router.Get("/api/accounts", as.listAccount)
+	as.router.Delete("/api/purge/accounts/:owner", as.purgeUserAccounts)
 	as.router.Delete("/api/accounts/:id", as.deleteAccount)
-	as.router.Delete("/api/accounts/purge/:owner-id", as.purgeUserAccounts)
 	as.router.Post("/api/transfer", as.createTransfer)
 
 }

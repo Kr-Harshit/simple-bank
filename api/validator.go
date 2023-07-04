@@ -21,13 +21,23 @@ type ApiValidator struct {
 
 func NewValidator() ApiValidator {
 	validate := validator.New()
+
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-		if name == "-" {
+		queryName := strings.SplitN(fld.Tag.Get("query"), ",", 2)[0]
+		if queryName != "" {
+			if queryName == "-" {
+				return ""
+			}
+			return queryName
+		}
+
+		jsonName := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if jsonName == "-" {
 			return ""
 		}
-		return name
+		return jsonName
 	})
+
 	return ApiValidator{*validate}
 }
 
@@ -39,7 +49,7 @@ func (av *ApiValidator) validateRequest(request interface{}) []*ValidatonError {
 			validationError := ValidatonError{
 				Field:   err.Field(),
 				Tag:     err.Tag(),
-				Message: fmt.Sprintf("inavlid value, %s validation failed on %s", err.ActualTag(), err.Field()),
+				Message: fmt.Sprintf("invalid value, %s validation failed on %s", err.ActualTag(), err.Field()),
 			}
 			errors = append(errors, &validationError)
 		}

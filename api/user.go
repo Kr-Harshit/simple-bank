@@ -74,8 +74,8 @@ func (as *ApiServer) createUser(ctx *fiber.Ctx) error {
 }
 
 type loginUserRequest struct {
-	Username string `json:"username" binding:"required,alphanum"`
-	Password string `json:"password" binding:"required,min=10"`
+	Username string `json:"username" validate:"required,alphanum"`
+	Password string `json:"password" validate:"required,min=10"`
 }
 
 type loginUserResponse struct {
