@@ -1,23 +1,23 @@
 package api
 
 import (
-	"net/http"
+	"errors"
 	"time"
 
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	dbUtil "github.com/KHarshit1203/simple-bank/db/utils"
-	"github.com/KHarshit1203/simple-bank/util"
-	"github.com/gin-gonic/gin"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	dbUtil "github.com/KHarshit1203/simple-bank/service/db/utils"
+	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/gofiber/fiber/v2"
 )
 
 type createUserRequest struct {
-	Username string `json:"username" binding:"required,alphanum"`
-	Password string `json:"password" binding:"required,min=10"`
-	Fullname string `json:"full_name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" validate:"required,alphanum"`
+	Password string `json:"password" validate:"required,min=10"`
+	Fullname string `json:"full_name" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
 }
 
-type createUserResponse struct {
+type userResponse struct {
 	Username          string    `json:"username"`
 	Fullname          string    `json:"full_name"`
 	Email             string    `json:"email"`
@@ -25,18 +25,33 @@ type createUserResponse struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
-func (server *Server) createUser(ctx *gin.Context) {
-	var req createUserRequest
+// newUserResponse returns the user response
+func newUserResponse(user db.User) userResponse {
+	return userResponse{
+		Username:          user.Username,
+		Email:             user.Email,
+		Fullname:          user.FullName,
+		PasswordChangedAt: user.PasswordChangedAt,
+		CreatedAt:         user.CreatedAt,
+	}
+}
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+// createUser implements routing logic for create user api
+func (as *ApiServer) createUser(ctx *fiber.Ctx) error {
+	ctx.Accepts("application/json")
+
+	var req createUserRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
+	}
+
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
 	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
 	arg := db.CreateUserParams{
@@ -46,24 +61,54 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Email:          req.Email,
 	}
 
-	user, err := server.store.CreateUser(ctx, arg)
+	user, err := as.store.CreateUser(ctx.Context(), arg)
 	if err != nil {
-		erroCode := dbUtil.ErrorCode(err)
-		if erroCode == dbUtil.UniqueViolation {
-			ctx.JSON(http.StatusForbidden, errorResponse(err))
-			return
+		if dbUtil.CheckErrorCode(err, dbUtil.ErrorUniqueKeyViolation.Code) {
+			return fiber.NewError(fiber.ErrForbidden.Code, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
-	resp := createUserResponse{
-		Username:          user.Username,
-		Email:             user.Email,
-		Fullname:          user.FullName,
-		PasswordChangedAt: user.PasswordChangedAt,
-		CreatedAt:         user.CreatedAt,
+	resp := newUserResponse(user)
+	return ctx.Status(fiber.StatusOK).JSON(resp)
+}
+
+type loginUserRequest struct {
+	Username string `json:"username" binding:"required,alphanum"`
+	Password string `json:"password" binding:"required,min=10"`
+}
+
+type loginUserResponse struct {
+	AccessToken string       `json:"access_token"`
+	User        userResponse `json:"user"`
+}
+
+func (as *ApiServer) loginUser(ctx *fiber.Ctx) error {
+	var req loginUserRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, resp)
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
+	}
+
+	user, err := as.store.GetUser(ctx.Context(), req.Username)
+	if err != nil {
+		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
+			return fiber.NewError(fiber.ErrNotFound.Code, err.Error())
+		}
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
+	}
+
+	if err := util.CheckPassword(req.Password, user.HashedPassword); err != nil {
+		return fiber.NewError(fiber.ErrUnauthorized.Code, err.Error())
+	}
+
+	accessToken, _, err := as.tokenMaker.CreateToken(user.Username, as.config.AccessTokenDuration)
+	if err != nil {
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(loginUserResponse{AccessToken: accessToken, User: newUserResponse(user)})
 }

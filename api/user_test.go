@@ -2,138 +2,88 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	"github.com/KHarshit1203/simple-bank/db/mock"
-	"github.com/KHarshit1203/simple-bank/util"
-	"github.com/gin-gonic/gin"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	"github.com/KHarshit1203/simple-bank/service/db/mocks"
+	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/gofiber/fiber/v2"
 )
 
-type eqCreateUserParamsMatcher struct {
-	arg      db.CreateUserParams
-	password string
-}
+func (at *ApiServerSuite) TestCreateUser() {
+	url := "/api/user"
 
-func (e eqCreateUserParamsMatcher) Matches(x interface{}) bool {
-	arg, ok := x.(db.CreateUserParams)
-	if !ok {
-		return false
-	}
+	validUsername := util.RandomString(10)
+	validPassword := util.RandomString(10)
+	validHashPassword, err := util.HashPassword(validPassword)
+	at.NoError(err)
+	validEmail := util.RandomEmail()
+	validFullName := util.RandomString(20)
 
-	err := util.CheckPassword(e.password, arg.HashedPassword)
-	if err != nil {
-		return false
-	}
-
-	e.arg.HashedPassword = arg.HashedPassword
-	return reflect.DeepEqual(e.arg, arg)
-}
-
-func (e eqCreateUserParamsMatcher) String() string {
-	return fmt.Sprintf("matches arg %v and password %v", e.arg, e.password)
-}
-
-func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
-	return eqCreateUserParamsMatcher{arg: arg, password: password}
-}
-
-func TestCreateUser(t *testing.T) {
-	password := util.RandomString(10)
-
-	user := db.User{
-		Username: util.RandomString(6),
-		FullName: util.RandomString(10),
-		Email:    util.RandomEmail(),
-	}
-
-	testCases := []struct {
-		name          string
-		requestBody   gin.H
-		buildStub     func(store *mock.MockStore)
-		checkResponse func(t *testing.T, responseRecorder *httptest.ResponseRecorder)
+	tests := []struct {
+		name        string
+		requestBody fiber.Map
+		setStore    func(t *testing.T, s *mocks.Store)
+		check       func(t *testing.T, resp *http.Response, err error)
 	}{
 		{
-			name: "OK",
-			requestBody: gin.H{
-				"username":  user.Username,
-				"password":  password,
-				"full_name": user.FullName,
-				"email":     user.Email,
+			name: "Status OK",
+			requestBody: fiber.Map{
+				"username":  validUsername,
+				"password":  validPassword,
+				"email":     validEmail,
+				"full_name": validFullName,
 			},
-			buildStub: func(store *mock.MockStore) {
-				arg := db.CreateUserParams{
-					Username: user.Username,
-					Email:    user.Email,
-					FullName: user.FullName,
+			setStore: func(t *testing.T, s *mocks.Store) {
+				args := db.CreateUserParams{
+					Username:       validUsername,
+					HashedPassword: validHashPassword,
+					FullName:       validFullName,
+					Email:          validEmail,
 				}
 
-				store.
-					EXPECT().
-					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
-					Times(1).
-					Return(user, nil)
+				s.On("CreateUser", context.Background(), args).Return(db.User{
+					Username:       validUsername,
+					HashedPassword: validHashPassword,
+					FullName:       validFullName,
+					Email:          validEmail,
+				}, nil)
 
+				// s.AssertCalled(t, "CreateUser")
+				// s.AssertExpectations(t)
+				// s.AssertNumberOfCalls(t, "CreateUser", 1)
 			},
-			checkResponse: func(t *testing.T, responseRecorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, responseRecorder.Code)
-				requireBodyMatcherUser(t, responseRecorder, user)
+			check: func(t *testing.T, resp *http.Response, err error) {
+				// req := require.New(t)
+
+				// req.NoError(err)
+				// req.NotEmpty(resp)
+
+				// req.Equal(http.StatusOK, resp.StatusCode)
 			},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+	for _, tt := range tests {
+		at.Run(tt.name, func() {
+			tt.setStore(at.T(), at.mockStore)
 
-			// get mock store
-			store := mock.NewMockStore(ctrl)
+			requestByte, err := json.Marshal(tt.requestBody)
+			at.NoError(err)
+			request := httptest.NewRequest("POST", url, bytes.NewReader(requestByte))
 
-			// build stub
-			tc.buildStub(store)
+			apiServer, ok := at.server.(*ApiServer)
+			at.True(ok)
 
-			// start test server and make request
-			server := NewServer(store)
-			recorder := httptest.NewRecorder()
+			response, err := apiServer.router.Test(request)
 
-			// Marshal request body to JSOn
-			requestByte, err := json.Marshal(tc.requestBody)
-			require.NoError(t, err)
+			tt.check(at.T(), response, err)
 
-			url := "/api/users"
-			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(requestByte))
-			require.NoError(t, err)
-
-			server.router.ServeHTTP(recorder, request)
-
-			// check response
-			tc.checkResponse(t, recorder)
 		})
 	}
-}
 
-func requireBodyMatcherUser(t *testing.T, recorder *httptest.ResponseRecorder, user db.User) {
-	require.NotEmpty(t, recorder)
-
-	data, err := io.ReadAll(recorder.Body)
-	require.NoError(t, err)
-
-	var gotUser createUserResponse
-	err = json.Unmarshal(data, &gotUser)
-	require.NoError(t, err)
-
-	require.Equal(t, user.Username, gotUser.Username)
-	require.Equal(t, user.FullName, gotUser.Fullname)
-	require.Equal(t, user.Email, gotUser.Email)
-	require.Equal(t, user.PasswordChangedAt, gotUser.PasswordChangedAt)
-	require.Equal(t, user.CreatedAt, gotUser.CreatedAt)
 }

@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/KHarshit1203/simple-bank/api"
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	"github.com/KHarshit1203/simple-bank/util"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	"github.com/KHarshit1203/simple-bank/service/util"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,7 +23,11 @@ func main() {
 	defer connPool.Close()
 
 	store := db.NewSQLStore(connPool)
-	server := api.NewServer(store)
+
+	server, err := api.NewServer(config, store)
+	if err != nil {
+		log.Fatalf("unable to create server: %v", err)
+	}
 
 	err = server.Start(config.ServerAddress)
 	if err != nil {

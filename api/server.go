@@ -1,51 +1,81 @@
 package api
 
 import (
-	"log"
+	"fmt"
+	"reflect"
 
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	"github.com/KHarshit1203/simple-bank/service/token"
+	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/gofiber/fiber/v2"
 )
 
-type Server struct {
-	store  db.Store
-	router *gin.Engine
+type Server interface {
+	// setupRoutes adds router routes to server method and path
+	setupRoutes()
+
+	// Start starts the server on a given address
+	Start(address string) error
 }
 
-func NewServer(store db.Store) *Server {
-	server := &Server{store: store}
-	router := gin.Default()
+type ApiServer struct {
+	config     util.Config
+	store      db.Store
+	tokenMaker token.Maker
+	router     *fiber.App
+	validator  ApiValidator
+}
 
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		if err := v.RegisterValidation("currency", validCurrency); err != nil {
-			log.Fatalf("unable to register currency validator, %v", err)
-		}
+func NewServer(config util.Config, store db.Store) (Server, error) {
+	if reflect.ValueOf(config).IsZero() {
+		return nil, fmt.Errorf("invalid config")
+	}
+	if store == nil {
+		return nil, fmt.Errorf("invalid store")
 	}
 
-	server.registerRoutes(router)
+	tokenMaker, err := token.NewPaestoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %v", err)
+	}
 
-	server.router = router
-	return server
+	router := fiber.New(fiber.Config{
+		AppName:      "Simple Bank",
+		ServerHeader: "Simple Bank",
+	})
+
+	validator := NewValidator()
+	validator.RegisterValidation("currency", validCurrency)
+
+	apiserver := &ApiServer{
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
+		router:     router,
+		validator:  validator,
+	}
+
+	apiserver.setupRoutes()
+
+	return apiserver, nil
 }
 
-func (server *Server) registerRoutes(router *gin.Engine) {
-	router.POST("/api/accounts", server.createAccount)
-	router.GET("/api/accounts/:id", server.getAccount)
-	router.GET("/api/accounts", server.listAccount)
-	router.DELETE("/api/accounts/:id", server.deleteAccount)
-	router.DELETE("/api/accounts/purge/:owner-id", server.purgeUserAccounts)
-	router.POST("/api/transfer", server.createTransfer)
+func (as *ApiServer) setupRoutes() {
 
-	router.POST("/api/users", server.createUser)
+	// user api's
+	as.router.Post("/api/user", as.createUser)
+	as.router.Post("/api/login", as.loginUser)
+
+	// account api's
+	as.router.Post("/api/accounts", as.createAccount)
+	as.router.Get("/api/accounts/:id", as.getAccount)
+	as.router.Get("/api/accounts", as.listAccount)
+	as.router.Delete("/api/accounts/:id", as.deleteAccount)
+	as.router.Delete("/api/accounts/purge/:owner-id", as.purgeUserAccounts)
+	as.router.Post("/api/transfer", as.createTransfer)
+
 }
 
-// Start runs the HTTP server on a specific address
-func (server *Server) Start(address string) error {
-	return server.router.Run(address)
-}
-
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
+func (as *ApiServer) Start(address string) error {
+	return as.router.Listen(address)
 }

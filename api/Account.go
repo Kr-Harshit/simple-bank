@@ -4,22 +4,24 @@ import (
 	"errors"
 	"net/http"
 
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	dbUtil "github.com/KHarshit1203/simple-bank/db/utils"
-	"github.com/gin-gonic/gin"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	dbUtil "github.com/KHarshit1203/simple-bank/service/db/utils"
+	"github.com/gofiber/fiber/v2"
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,currency"`
+	Owner    string `json:"owner" validate:"required"`
+	Currency string `json:"currency" validate:"required,currency"`
 }
 
-func (server *Server) createAccount(ctx *gin.Context) {
+func (as *ApiServer) createAccount(ctx *fiber.Ctx) error {
 	var req createAccountRequest
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.ErrBadRequest.Code, err.Error())
+	}
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
 	arg := db.CreateAccountParams{
@@ -28,56 +30,57 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		Balance:  0,
 	}
 
-	account, err := server.store.CreateAccount(ctx, arg)
+	account, err := as.store.CreateAccount(ctx.Context(), arg)
 	if err != nil {
-		erroCode := dbUtil.ErrorCode(err)
-		if erroCode == dbUtil.ForeignKeyViolation || erroCode == dbUtil.UniqueViolation {
-			ctx.JSON(http.StatusForbidden, errorResponse(err))
-			return
+		if dbUtil.CheckErrorCode(err, dbUtil.ErrorForeignKeyViolation.Code) || dbUtil.CheckErrorCode(err, dbUtil.ErrorUniqueKeyViolation.Code) {
+			return fiber.NewError(fiber.ErrForbidden.Code, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
+
 	}
 
-	ctx.JSON(http.StatusOK, account)
+	return ctx.Status(fiber.StatusOK).JSON(account)
 }
 
 type getAccountRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
+	ID int64 `uri:"id" validate:"required,min=1"`
 }
 
-func (server *Server) getAccount(ctx *gin.Context) {
+func (as *ApiServer) getAccount(ctx *fiber.Ctx) error {
 	var req getAccountRequest
-
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
-	account, err := server.store.GetAccount(ctx, req.ID)
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
+	}
+
+	account, err := as.store.GetAccount(ctx.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
+			return fiber.NewError(fiber.ErrNotFound.Code, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
-	ctx.JSON(http.StatusOK, account)
+	return ctx.Status(fiber.StatusOK).JSON(account)
 }
 
 type listAccountRequest struct {
-	Owner    string `form:"owner" binding:"required"`
-	PageID   int32  `form:"page-id" binding:"required,min=1"`
-	PageSize int32  `form:"page-size" binding:"required,min=5,max=20"`
+	Owner    string `form:"owner" validate:"required"`
+	PageID   int32  `form:"page-id" validate:"required,min=1"`
+	PageSize int32  `form:"page-size" validate:"required,min=5,max=20"`
 }
 
-func (server *Server) listAccount(ctx *gin.Context) {
+func (as *ApiServer) listAccount(ctx *fiber.Ctx) error {
 	var req listAccountRequest
 
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
+	}
+
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
 	arg := db.ListAccountsParams{
@@ -86,65 +89,65 @@ func (server *Server) listAccount(ctx *gin.Context) {
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	accounts, err := server.store.ListAccounts(ctx, arg)
+	accounts, err := as.store.ListAccounts(ctx.Context(), arg)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
+			return fiber.NewError(fiber.ErrNotFound.Code, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, accounts)
+	return ctx.Status(fiber.StatusOK).JSON(accounts)
 }
 
 type deleteAccountRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
+	ID int64 `uri:"id" validate:"required,min=1"`
 }
 
-func (server *Server) deleteAccount(ctx *gin.Context) {
+func (as *ApiServer) deleteAccount(ctx *fiber.Ctx) error {
 	var req deleteAccountRequest
 
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if err := ctx.ParamsParser(&req); err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	err := server.store.DeleteAccount(ctx, req.ID)
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
+	}
+
+	err := as.store.DeleteAccount(ctx.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
+			return fiber.NewError(http.StatusNotFound, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, "account deleted")
+	return ctx.Status(fiber.StatusOK).JSON("account deleted")
 }
 
 type purgeUserAccountsRequest struct {
-	OwnerID string `uri:"owner-id" binding:"required"`
+	OwnerID string `uri:"owner-id" validate:"required"`
 }
 
-func (server *Server) purgeUserAccounts(ctx *gin.Context) {
+func (as *ApiServer) purgeUserAccounts(ctx *fiber.Ctx) error {
 	var req purgeUserAccountsRequest
 
-	if err := ctx.ShouldBindUri(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if err := ctx.ParamsParser(&req); err != nil {
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	err := server.store.PurgeUserAccounts(ctx, req.OwnerID)
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
+	}
+
+	err := as.store.PurgeUserAccounts(ctx.Context(), req.OwnerID)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return
+			return fiber.NewError(http.StatusNotFound, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, "user accounts deleted")
+	return ctx.Status(http.StatusOK).JSON("user accounts deleted")
 }

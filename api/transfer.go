@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	db "github.com/KHarshit1203/simple-bank/db/gen"
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
+	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx"
 )
 
 type transferRequest struct {
@@ -16,25 +16,27 @@ type transferRequest struct {
 	Currency      string  `json:"currency" binding:"required,currency"`
 }
 
-func (server *Server) createTransfer(ctx *gin.Context) {
+func (as *ApiServer) createTransfer(ctx *fiber.Ctx) error {
 	var req transferRequest
 
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	if err := ctx.BodyParser(&req); err != nil {
+		return fiber.NewError(http.StatusBadRequest, err.Error())
+	}
+
+	if errors := as.validator.validateRequest(req); errors != nil {
+		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
 	}
 
 	if req.FromAccountID == req.ToAccountID {
-		ctx.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("from_account_id cannot be same as to_account_id")))
-		return
+		return fiber.NewError(http.StatusBadRequest, "from_account_id cannot be same as to_account_id")
 	}
 
-	if !server.validAccount(ctx, req.FromAccountID, req.Currency) {
-		return
+	if err := as.validAccount(ctx, req.FromAccountID, req.Currency); err != nil {
+		return err
 	}
 
-	if !server.validAccount(ctx, req.ToAccountID, req.Currency) {
-		return
+	if err := as.validAccount(ctx, req.ToAccountID, req.Currency); err != nil {
+		return err
 	}
 
 	arg := db.TransferTxParams{
@@ -43,30 +45,25 @@ func (server *Server) createTransfer(ctx *gin.Context) {
 		Amount:        req.Amount,
 	}
 
-	result, err := server.store.TransferTx(ctx, arg)
+	result, err := as.store.TransferTx(ctx.Context(), arg)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, result)
+	return ctx.Status(http.StatusOK).JSON(result)
 }
 
-func (server *Server) validAccount(ctx *gin.Context, accountID int64, currency string) bool {
-	account, err := server.store.GetAccount(ctx, accountID)
+func (as *ApiServer) validAccount(ctx *fiber.Ctx, accountID int64, currency string) error {
+	account, err := as.store.GetAccount(ctx.Context(), accountID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			return fiber.NewError(http.StatusNotFound, err.Error())
 		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	if account.Currency != currency {
-		err := fmt.Errorf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency)
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return false
+		return fiber.NewError(http.StatusBadRequest, fmt.Sprintf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency))
 	}
-	return true
+	return nil
 }
