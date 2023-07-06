@@ -6,11 +6,11 @@ import (
 
 	db "github.com/KHarshit1203/simple-bank/service/db/gen"
 	dbUtil "github.com/KHarshit1203/simple-bank/service/db/utils"
+	"github.com/KHarshit1203/simple-bank/service/token"
 	"github.com/gofiber/fiber/v2"
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" validate:"required,alphanum"`
 	Currency string `json:"currency" validate:"required,currency"`
 }
 
@@ -24,8 +24,10 @@ func (as *ApiServer) createAccount(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
+	authPayload := ctx.Locals(authorizationPayloadKey).(*token.Payload)
+
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -56,6 +58,7 @@ func (as *ApiServer) getAccount(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
+	authPayload := ctx.Locals(authorizationPayloadKey).(*token.Payload)
 	account, err := as.store.GetAccount(ctx.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
@@ -63,13 +66,15 @@ func (as *ApiServer) getAccount(ctx *fiber.Ctx) error {
 		}
 		fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
+	if account.Owner != authPayload.Username {
+		return fiber.NewError(http.StatusNotFound, "no account found")
+	}
 	return ctx.Status(fiber.StatusOK).JSON(account)
 }
 
 type listAccountRequest struct {
-	Owner    string `query:"owner" validate:"required,alphanum"`
-	PageID   int32  `query:"page_id" validate:"required,min=1"`
-	PageSize int32  `query:"page_size" validate:"required,min=5,max=20"`
+	PageID   int32 `query:"page_id" validate:"required,min=1"`
+	PageSize int32 `query:"page_size" validate:"required,min=5,max=20"`
 }
 
 func (as *ApiServer) listAccount(ctx *fiber.Ctx) error {
@@ -83,8 +88,9 @@ func (as *ApiServer) listAccount(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.StatusBadRequest).JSON(errors)
 	}
 
+	authPayload := ctx.Locals(authorizationPayloadKey).(*token.Payload)
 	arg := db.ListAccountsParams{
-		Owner:  req.Owner,
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
@@ -115,7 +121,22 @@ func (as *ApiServer) deleteAccount(ctx *fiber.Ctx) error {
 		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
 	}
 
-	err := as.store.DeleteAccount(ctx.Context(), req.ID)
+	authPayload := ctx.Locals(authorizationPayloadKey).(*token.Payload)
+	account, err := as.store.GetAccount(ctx.Context(), req.ID)
+	if err != nil {
+		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
+			return fiber.NewError(http.StatusNotFound, err.Error())
+		}
+		return fiber.NewError(http.StatusInternalServerError, err.Error())
+	}
+	if account.Owner != authPayload.Username {
+		return fiber.NewError(http.StatusUnauthorized, "user doesn't have access to account")
+	}
+
+	err = as.store.DeleteAccount(ctx.Context(), db.DeleteAccountParams{
+		Owner: authPayload.Username,
+		ID:    account.ID,
+	})
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
 			return fiber.NewError(http.StatusNotFound, err.Error())
@@ -126,22 +147,10 @@ func (as *ApiServer) deleteAccount(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON("account deleted")
 }
 
-type purgeUserAccountsRequest struct {
-	Owner string `uri:"owner" validate:"required,alphanum"`
-}
-
 func (as *ApiServer) purgeUserAccounts(ctx *fiber.Ctx) error {
-	var req purgeUserAccountsRequest
+	authPayload := ctx.Locals(authorizationPayloadKey).(*token.Payload)
 
-	if err := ctx.ParamsParser(&req); err != nil {
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
-	}
-
-	if errors := as.validator.validateRequest(req); errors != nil {
-		return ctx.Status(fiber.ErrBadRequest.Code).JSON(errors)
-	}
-
-	err := as.store.PurgeUserAccounts(ctx.Context(), req.Owner)
+	err := as.store.PurgeUserAccounts(ctx.Context(), authPayload.Username)
 	if err != nil {
 		if errors.Is(err, dbUtil.ErrorRecordNotFound) {
 			return fiber.NewError(http.StatusNotFound, err.Error())

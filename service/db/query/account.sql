@@ -25,7 +25,7 @@ RETURNING *;
 
 -- name: DeleteAccount :exec
 DELETE FROM accounts
-WHERE id = $1;
+WHERE owner = $1 AND id = $2;
 
 -- name: PurgeUserAccounts :exec
 DELETE FROM accounts

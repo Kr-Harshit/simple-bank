@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	db "github.com/KHarshit1203/simple-bank/service/db/gen"
+	"github.com/KHarshit1203/simple-bank/service/token"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx"
 )
@@ -31,11 +32,16 @@ func (as *ApiServer) createTransfer(ctx *fiber.Ctx) error {
 		return fiber.NewError(http.StatusBadRequest, "from_account_id cannot be same as to_account_id")
 	}
 
-	if err := as.validAccount(ctx, req.FromAccountID, req.Currency); err != nil {
+	FromAccount, err := as.validAccount(ctx, req.FromAccountID, req.Currency)
+	if err != nil {
 		return err
 	}
+	authPaylod := ctx.Locals(authorizationPayloadKey).(*token.Payload)
+	if FromAccount.Owner != authPaylod.Username {
+		return fiber.NewError(http.StatusUnauthorized, "user doesn't access to account")
+	}
 
-	if err := as.validAccount(ctx, req.ToAccountID, req.Currency); err != nil {
+	if _, err := as.validAccount(ctx, req.ToAccountID, req.Currency); err != nil {
 		return err
 	}
 
@@ -53,17 +59,17 @@ func (as *ApiServer) createTransfer(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(result)
 }
 
-func (as *ApiServer) validAccount(ctx *fiber.Ctx, accountID int64, currency string) error {
+func (as *ApiServer) validAccount(ctx *fiber.Ctx, accountID int64, currency string) (db.Account, error) {
 	account, err := as.store.GetAccount(ctx.Context(), accountID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return fiber.NewError(http.StatusNotFound, err.Error())
+			return account, fiber.NewError(http.StatusNotFound, err.Error())
 		}
-		return fiber.NewError(http.StatusInternalServerError, err.Error())
+		return account, fiber.NewError(http.StatusInternalServerError, err.Error())
 	}
 
 	if account.Currency != currency {
-		return fiber.NewError(http.StatusBadRequest, fmt.Sprintf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency))
+		return account, fiber.NewError(http.StatusBadRequest, fmt.Sprintf("account [%d] currency mismatch: %s vs %s", account.ID, account.Currency, currency))
 	}
-	return nil
+	return account, nil
 }

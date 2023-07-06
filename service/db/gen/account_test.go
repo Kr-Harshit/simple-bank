@@ -79,7 +79,10 @@ func TestListAccounts(t *testing.T) {
 func TestDeleteAccount(t *testing.T) {
 	account1 := generateAccount(t)
 
-	err := testStore.DeleteAccount(context.Background(), account1.ID)
+	err := testStore.DeleteAccount(context.Background(), DeleteAccountParams{
+		Owner: account1.Owner,
+		ID:    account1.ID,
+	})
 	require.NoError(t, err)
 
 	account2, err := testStore.GetAccount(context.Background(), account1.ID)

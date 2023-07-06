@@ -61,19 +61,23 @@ func NewServer(config util.Config, store db.Store) (Server, error) {
 }
 
 func (as *ApiServer) setupRoutes() {
+	as.router.Route("/api", func(api fiber.Router) {
+		// user api's
+		api.Post("/user", as.createUser)
+		api.Post("/login", as.loginUser)
 
-	// user api's
-	as.router.Post("/api/user", as.createUser)
-	as.router.Post("/api/login", as.loginUser)
+		authRoutes := api.Group("/").Use(authMiddleware(as.tokenMaker))
 
-	// account api's
-	as.router.Post("/api/accounts", as.createAccount)
-	as.router.Get("/api/accounts/:id", as.getAccount)
-	as.router.Get("/api/accounts", as.listAccount)
-	as.router.Delete("/api/purge/accounts/:owner", as.purgeUserAccounts)
-	as.router.Delete("/api/accounts/:id", as.deleteAccount)
-	as.router.Post("/api/transfer", as.createTransfer)
-
+		// account api's
+		authRoutes.Route("/accounts", func(router fiber.Router) {
+			router.Post("/", as.createAccount)
+			router.Get("/:id", as.getAccount)
+			router.Get("/", as.listAccount)
+			router.Delete("/:id", as.deleteAccount)
+		})
+		authRoutes.Delete("/accounts/purge", as.purgeUserAccounts)
+		authRoutes.Post("/transfer", as.createTransfer)
+	})
 }
 
 func (as *ApiServer) Start(address string) error {
