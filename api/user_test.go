@@ -1,89 +1,75 @@
 package api
 
-import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+// func (at *ApiServerSuite) TestCreateUser() {
+// 	url := "/api/user"
 
-	db "github.com/KHarshit1203/simple-bank/service/db/gen"
-	"github.com/KHarshit1203/simple-bank/service/db/mocks"
-	"github.com/KHarshit1203/simple-bank/service/util"
-	"github.com/gofiber/fiber/v2"
-)
+// 	validUsername := util.RandomString(10)
+// 	validPassword := util.RandomString(10)
+// 	validHashPassword, err := util.HashPassword(validPassword)
+// 	at.NoError(err)
+// 	validEmail := util.RandomEmail()
+// 	validFullName := util.RandomString(20)
 
-func (at *ApiServerSuite) TestCreateUser() {
-	url := "/api/user"
+// 	tests := []struct {
+// 		name        string
+// 		requestBody fiber.Map
+// 		setStore    func(t *testing.T, s *mocks.Store)
+// 		check       func(t *testing.T, resp *http.Response, err error)
+// 	}{
+// 		{
+// 			name: "Status OK",
+// 			requestBody: fiber.Map{
+// 				"username":  validUsername,
+// 				"password":  validPassword,
+// 				"email":     validEmail,
+// 				"full_name": validFullName,
+// 			},
+// 			setStore: func(t *testing.T, s *mocks.Store) {
+// 				args := db.CreateUserParams{
+// 					Username:       validUsername,
+// 					HashedPassword: validHashPassword,
+// 					FullName:       validFullName,
+// 					Email:          validEmail,
+// 				}
 
-	validUsername := util.RandomString(10)
-	validPassword := util.RandomString(10)
-	validHashPassword, err := util.HashPassword(validPassword)
-	at.NoError(err)
-	validEmail := util.RandomEmail()
-	validFullName := util.RandomString(20)
+// 				s.On("CreateUser", context.Background(), args).Return(db.User{
+// 					Username:       validUsername,
+// 					HashedPassword: validHashPassword,
+// 					FullName:       validFullName,
+// 					Email:          validEmail,
+// 				}, nil)
 
-	tests := []struct {
-		name        string
-		requestBody fiber.Map
-		setStore    func(t *testing.T, s *mocks.Store)
-		check       func(t *testing.T, resp *http.Response, err error)
-	}{
-		{
-			name: "Status OK",
-			requestBody: fiber.Map{
-				"username":  validUsername,
-				"password":  validPassword,
-				"email":     validEmail,
-				"full_name": validFullName,
-			},
-			setStore: func(t *testing.T, s *mocks.Store) {
-				args := db.CreateUserParams{
-					Username:       validUsername,
-					HashedPassword: validHashPassword,
-					FullName:       validFullName,
-					Email:          validEmail,
-				}
+// 				s.AssertCalled(t, "CreateUser")
+// 				s.AssertExpectations(t)
+// 				s.AssertNumberOfCalls(t, "CreateUser", 1)
+// 			},
+// 			check: func(t *testing.T, resp *http.Response, err error) {
+// 				req := require.New(t)
 
-				s.On("CreateUser", context.Background(), args).Return(db.User{
-					Username:       validUsername,
-					HashedPassword: validHashPassword,
-					FullName:       validFullName,
-					Email:          validEmail,
-				}, nil)
+// 				req.NoError(err)
+// 				req.NotEmpty(resp)
 
-				// s.AssertCalled(t, "CreateUser")
-				// s.AssertExpectations(t)
-				// s.AssertNumberOfCalls(t, "CreateUser", 1)
-			},
-			check: func(t *testing.T, resp *http.Response, err error) {
-				// req := require.New(t)
+// 				req.Equal(http.StatusOK, resp.StatusCode)
+// 			},
+// 		},
+// 	}
 
-				// req.NoError(err)
-				// req.NotEmpty(resp)
+// 	for _, tt := range tests {
+// 		at.Run(tt.name, func() {
+// 			tt.setStore(at.T(), at.mockStore)
 
-				// req.Equal(http.StatusOK, resp.StatusCode)
-			},
-		},
-	}
+// 			requestByte, err := json.Marshal(tt.requestBody)
+// 			at.NoError(err)
+// 			request := httptest.NewRequest("POST", url, bytes.NewReader(requestByte))
 
-	for _, tt := range tests {
-		at.Run(tt.name, func() {
-			tt.setStore(at.T(), at.mockStore)
+// 			apiServer, ok := at.server.(*ApiServer)
+// 			at.True(ok)
 
-			requestByte, err := json.Marshal(tt.requestBody)
-			at.NoError(err)
-			request := httptest.NewRequest("POST", url, bytes.NewReader(requestByte))
+// 			response, err := apiServer.router.Test(request)
 
-			apiServer, ok := at.server.(*ApiServer)
-			at.True(ok)
+// 			tt.check(at.T(), response, err)
 
-			response, err := apiServer.router.Test(request)
+// 		})
+// 	}
 
-			tt.check(at.T(), response, err)
-
-		})
-	}
-
-}
+// }

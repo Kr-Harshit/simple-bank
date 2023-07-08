@@ -9,36 +9,16 @@ import (
 	"github.com/KHarshit1203/simple-bank/service/token"
 	"github.com/KHarshit1203/simple-bank/service/util"
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
-type ApiServerSuite struct {
-	suite.Suite
-	mockConfig util.Config
-	mockStore  *mocks.Store
-	server     Server
-}
-
-func TestApiServerSuite(t *testing.T) {
-	suite.Run(t, &ApiServerSuite{})
-}
-
-func (at *ApiServerSuite) SetupSubTest() {
-	mockConfig := util.Config{TokenSymmetricKey: util.RandomString(32)}
-	mockStore := mocks.NewStore(at.T())
-	testServer, err := NewServer(mockConfig, mockStore)
-	at.NoError(err)
-
-	at.mockConfig = mockConfig
-	at.mockStore = mockStore
-	at.server = testServer
-}
-
-func (at *ApiServerSuite) TestNewServer() {
+func TestNewServer(t *testing.T) {
 	type args struct {
 		config util.Config
 		store  db.Store
 	}
+
+	validConfig := util.Config{TokenSymmetricKey: util.RandomString(32)}
+	validStore := mocks.NewStore(t)
 
 	tests := []struct {
 		name  string
@@ -48,8 +28,8 @@ func (at *ApiServerSuite) TestNewServer() {
 		{
 			name: "valid arguments",
 			args: args{
-				config: at.mockConfig,
-				store:  at.mockStore,
+				config: validConfig,
+				store:  validStore,
 			},
 			check: func(t *testing.T, gotServer Server, gotError error) {
 				req := require.New(t)
@@ -61,7 +41,7 @@ func (at *ApiServerSuite) TestNewServer() {
 				req.True(ok)
 				req.NotEmpty(gotApiServer.store)
 				req.NotEmpty(gotApiServer.config)
-				req.Equal(at.mockConfig, gotApiServer.config)
+				req.Equal(validConfig, gotApiServer.config)
 				req.NotEmpty(gotApiServer.router)
 				req.Equal("Simple Bank", gotApiServer.router.Config().ServerHeader)
 				req.Equal("Simple Bank", gotApiServer.router.Config().AppName)
@@ -71,7 +51,7 @@ func (at *ApiServerSuite) TestNewServer() {
 		{
 			name: "empty config input",
 			args: args{
-				store: at.mockStore,
+				store: validStore,
 			},
 			check: func(t *testing.T, gotServer Server, gotError error) {
 				req := require.New(t)
@@ -83,7 +63,7 @@ func (at *ApiServerSuite) TestNewServer() {
 		{
 			name: "empty store input",
 			args: args{
-				config: at.mockConfig,
+				config: validConfig,
 			},
 			check: func(t *testing.T, gotServer Server, gotError error) {
 				req := require.New(t)
@@ -96,7 +76,7 @@ func (at *ApiServerSuite) TestNewServer() {
 			name: "invalid config input",
 			args: args{
 				config: util.Config{TokenSymmetricKey: util.RandomString(10)},
-				store:  at.mockStore,
+				store:  validStore,
 			},
 			check: func(t *testing.T, gotServer Server, gotError error) {
 				req := require.New(t)
@@ -108,9 +88,9 @@ func (at *ApiServerSuite) TestNewServer() {
 	}
 
 	for _, tt := range tests {
-		at.Run(tt.name, func() {
+		t.Run(tt.name, func(t *testing.T) {
 			gotServer, gotErr := NewServer(tt.args.config, tt.args.store)
-			tt.check(at.T(), gotServer, gotErr)
+			tt.check(t, gotServer, gotErr)
 		})
 	}
 }
