@@ -110,13 +110,13 @@ func (_m *Store) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.Us
 	return r0, r1
 }
 
-// DeleteAccount provides a mock function with given fields: ctx, id
-func (_m *Store) DeleteAccount(ctx context.Context, id int64) error {
-	ret := _m.Called(ctx, id)
+// DeleteAccount provides a mock function with given fields: ctx, arg
+func (_m *Store) DeleteAccount(ctx context.Context, arg db.DeleteAccountParams) error {
+	ret := _m.Called(ctx, arg)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int64) error); ok {
-		r0 = rf(ctx, id)
+	if rf, ok := ret.Get(0).(func(context.Context, db.DeleteAccountParams) error); ok {
+		r0 = rf(ctx, arg)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -1,4 +1,5 @@
 .PHONY: 
+	createNetwork
 	createPostgres
 	deletePostgres
 	stopPostgres 
@@ -14,8 +15,11 @@
 	test
 	mock 
 
+createNetwork:
+	docker network create simple-bank
+
 createPostgres:
-	docker run --name postgresDB -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:alpine
+	docker run --name postgresDB -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret --network simple-bank -d postgres:alpine
 
 deletePostgres:
 	docker rm -f postgresDB
@@ -55,10 +59,10 @@ sqlc:
 	sqlc generate
 
 server:
-	go run main.go
+	docker run --name apiserver -p 8080:8080 --network simple-bank -e DB_SOURCE="postgres://root:secret@postgresDB:5432/simple_bank?sslmode=disable" -d simplebank:latest
 
 test:
 	go test -v --cover ./...
 
 mock: 
-	mockgen -package mock -destination ./db/mock/Store.go github.com/KHarshit1203/simple-bank/db/gen Store
+	mockery --dir service/db/gen --output service/db/mocks  --name Store  
