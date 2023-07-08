@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_USER=simple-bank
+      - POSTGRES_PASSWORD=simple-bank-secret
+      - POSTGRES_DB=simple-bank
+  
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_SOURCE=postgres://simple-bank:simple-bank-secret@postgres:5432/simple-bank?sslmode=disable
+    container_name: apiserver
+    depends_on:
+      - postgres
+    entrypoint: ["/app/wait-for.sh", "postgres:5432", "--", "/app/start.sh"]
+    command: ["/app/main"]
