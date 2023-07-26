@@ -13,3 +13,4 @@ This repo is a follow along tutorial implementaion to learn Golang backend devel
 - [testify](https://github.com/stretchr/testify) --> to mock Database, create and assert tests for testing
 - [JWT](https://github.com/golang-jwt/jwt) -> to generate JWT token
 - [Paesto](https://github.com/o1egl/paseto) -> to generate Paesto token
+- [Cobra](https://github.com/spf13/cobra) -> to generate CLI

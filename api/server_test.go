@@ -7,7 +7,7 @@ import (
 	db "github.com/KHarshit1203/simple-bank/service/db/gen"
 	"github.com/KHarshit1203/simple-bank/service/db/mocks"
 	"github.com/KHarshit1203/simple-bank/service/token"
-	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +17,7 @@ func TestNewServer(t *testing.T) {
 		store  db.Store
 	}
 
-	validConfig := util.Config{TokenSymmetricKey: util.RandomString(32)}
+	validConfig := util.Config{Token: util.TokenConfig{Key: util.RandomString(32)}}
 	validStore := mocks.NewStore(t)
 
 	tests := []struct {
@@ -75,7 +75,7 @@ func TestNewServer(t *testing.T) {
 		{
 			name: "invalid config input",
 			args: args{
-				config: util.Config{TokenSymmetricKey: util.RandomString(10)},
+				config: util.Config{Token: util.TokenConfig{Key: util.RandomString(10)}},
 				store:  validStore,
 			},
 			check: func(t *testing.T, gotServer Server, gotError error) {
