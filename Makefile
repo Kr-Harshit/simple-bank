@@ -61,7 +61,7 @@ run-server:
 	-d simplebank:latest
 
 build-server:
-	docker build -t simplebank:latest .
+	docker build -f docker/Dockerfile -t simplebank:latest .
 
 test-server:
 	go test -v --cover ./...
