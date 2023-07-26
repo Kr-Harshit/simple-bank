@@ -6,7 +6,7 @@ import (
 
 	db "github.com/KHarshit1203/simple-bank/service/db/gen"
 	"github.com/KHarshit1203/simple-bank/service/token"
-	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,7 +34,7 @@ func NewServer(config util.Config, store db.Store) (Server, error) {
 		return nil, fmt.Errorf("invalid store")
 	}
 
-	tokenMaker, err := token.NewPaestoMaker(config.TokenSymmetricKey)
+	tokenMaker, err := token.NewPaestoMaker(config.Token.Key)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %v", err)
 	}

@@ -6,7 +6,7 @@ import (
 
 	db "github.com/KHarshit1203/simple-bank/service/db/gen"
 	dbUtil "github.com/KHarshit1203/simple-bank/service/db/utils"
-	"github.com/KHarshit1203/simple-bank/service/util"
+	"github.com/KHarshit1203/simple-bank/util"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -105,7 +105,7 @@ func (as *ApiServer) loginUser(ctx *fiber.Ctx) error {
 		return fiber.NewError(fiber.ErrUnauthorized.Code, err.Error())
 	}
 
-	accessToken, _, err := as.tokenMaker.CreateToken(user.Username, as.config.AccessTokenDuration)
+	accessToken, _, err := as.tokenMaker.CreateToken(user.Username, as.config.Token.Duration)
 	if err != nil {
 		return fiber.NewError(fiber.ErrInternalServerError.Code, err.Error())
 	}
