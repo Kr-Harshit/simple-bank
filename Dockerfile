@@ -12,8 +12,8 @@ RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/
 FROM golang:alpine3.18
 WORKDIR /app
 COPY config.yaml .
-COPY docker/wait-for.sh .
-COPY docker/start.sh .
+COPY wait-for.sh .
+COPY start.sh .
 COPY service/db/migration ./migration
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrate ./migrate
