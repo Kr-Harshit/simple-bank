@@ -1,87 +1,86 @@
-.PHONY: 
-	create-network
-	run-db
-	delete-db
-	stop-db 
-	start-db 
-	remove-db
-	create-migration 
-	migate-up 
-	migrate-one-up
-	migrate-one-down
-	migrate-down
-	sqlc
-	test
-	mock
-	run-server
-	build-server 
+#********************************************************************************#
+#				Targets for developing, testing, buiulding project
+#********************************************************************************#
 
 
+APPLICATION_NAME = simple-bank
 
-create-network:
-	docker network create simple-bank
+#********************************************************************************#
+#				Build, Test and Lint
+#********************************************************************************#
 
-####### DATABASE ########
+build-binary:
+	CGO_ENABLED=0 GOPROXY=direct GOARCH=amd64 GOOS=linux go build -o $(APPLICATION_NAME) main.go
 
-run-db:
-	docker run \
-	--name simple-bank-db \
-	-p 5432:5432 \
-	-e POSTGRES_USER=root \
-	-e POSTGRES_PASSWORD=secret \
-	-e POSTGRES_DB=simple-bank \
-	--network simple-bank \
-	-d postgres:alpine
-
-delete-db:
-	docker rm -f simple-bank-db
-
-stop-db:
-	docker stop simple-bank-DB
-
-start-db:
-	docker start simple-bank-DB
-
-remove-db: 
-	docker exec -it postgresDB dropdb simple_bank
-
-login-db:
-	docker exec -it postgresDB psql -U root -W
-
-
-###### SERVER #######
-
-run-server:
-	docker run \
-	--name simple-bank-server \
-	-p 8080:8080 \
-	--network simple-bank \
-	-e ENV_DATABASE_SOURCE="postgres://root:secret@simple-bank-DB:5432/simple-bank?sslmode=disable" \
-	-e ENV_TOKEN_KEY="2bddd92e3cbe124f65091c39bdad5bf5" \
-	-d simplebank:latest
-
-build-server:
-	docker build -f docker/Dockerfile -t simplebank:latest .
-
-test-server:
+test:
 	go test -v --cover ./...
 
-###### TOOLS #########
+dep:
+	go mod download
+
+vet:
+	go vet
+
+lint:
+	docker run -t --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.53.3 golangci-lint run -v
+
+
+#********************************************************************************#
+#				local debugging
+#********************************************************************************#
+
+DEBUG_DATABASE_SOURCE = postgres://root:secret@localhost:5432/$(APPLICATION_NAME)?sslmode=disable
+MIGRATION_VERSION =
+
+export ENV_DATABASE_SOURCE=$(DEBUG_DATABASE_SOURCE)
+export ENV_TOKEN_KEY=$(shell openssl rand -hex 16)
+
+
+debug-server: debug-database
+	CGO_ENABLED=0 GOPROXY=direct go run main.go
+
+debug-database:
+	docker run \
+	--name $(APPLICATION_NAME)-debug-db \
+	-p 5432:5432 \
+	-e POSTGRES_DB=$(APPLICATION_NAME) \
+	-e POSTGRES_USER=root \
+	-e POSTGRES_PASSWORD=secret \
+	-d postgres:alpine
+
+debug-login-database:
+	docker exec -it $(APPLICATION_NAME)-debug-db psql -U root -W
+
+debug-clean:
+	docker rm -f $(APPLICATION_NAME)-debug-db
+
+debug-migrate-up:
+	migrate -path service/db/migration -database $(DEBUG_DATABASE_SOURCE) --verbose up $(MIGRATION_VERSION)
+
+debug-migrate-down:
+	migrate -path service/db/migration -database $(DEBUG_DATABASE_SOURCE) --verbose down $(MIGRATION_VERSION)
+
+
+#********************************************************************************#
+#				local docker-compose testing
+#********************************************************************************#
+
+compose-test:
+	docker compose up
+
+compose-clean:
+	docker compose down
+	docker rm 
+
+
+#********************************************************************************#
+#				development tools
+#********************************************************************************#
+
+SCHEMA_NAME = "init"
 
 create-migration:	
-	migrate create -ext sql -dir service/db/migration -seq -digits 3 {## give schema name ##}
-
-migrate-up:
-	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up
-
-migrate-one-up:
-	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose up 1
-
-migrate-down:
-	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down
-
-migrate-one-down:
-	migrate -path service/db/migration -database "postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" --verbose down 1
+	migrate create -ext sql -dir service/db/migration -seq -digits 3 $(SCHEMA_NAME)
 
 sqlc:
 	sqlc generate
