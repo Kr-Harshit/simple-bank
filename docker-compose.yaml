@@ -19,5 +19,4 @@ services:
     container_name: simplebank-server
     depends_on:
       - db
-    entrypoint: ["/app/wait-for.sh", "simplebank-db:5432", "--", "/app/start.sh"]
     command: ["/app/main"]

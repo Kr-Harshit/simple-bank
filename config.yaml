@@ -4,3 +4,6 @@ app:
 
 token:
   duration: 15s
+
+database:
+  migrate_source: file://migration

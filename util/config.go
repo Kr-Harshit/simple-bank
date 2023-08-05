@@ -17,7 +17,9 @@ type Config struct {
 }
 
 type DBConfig struct {
-	Source string
+	Name          string
+	Source        string
+	MigrateSource string `mapstructure:"migrate_source"`
 }
 
 type APPConfig struct {
@@ -46,10 +48,13 @@ func LoadConfig(cfgFile string) (config Config, err error) {
 
 	viper.BindEnv("token.key")
 	viper.BindEnv("database.source")
+	viper.BindEnv("database.MigrateSource")
 
 	if err = viper.ReadInConfig(); err != nil {
 		return
 	}
+
+	log.Printf("viper settings: %v", viper.AllSettings())
 
 	err = viper.Unmarshal(&config)
 	log.Printf("config: %+v", config)
